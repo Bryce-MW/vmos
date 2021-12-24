@@ -1,0 +1,28 @@
+unstable_features = true
+edition = 2021
+
+binop_separator = "Back"
+
+brace_style = "AlwaysNextLine"
+
+condense_wildcard_suffixes = true
+
+enum_discrim_align_threshold = 20
+
+fn_single_line = true
+
+format_macro_matchers = true
+
+format_strings = true
+
+hex_literal_case = "Lower"
+
+imports_layout = "HorizontalVertical"
+
+match_block_trailing_comma = true
+
+imports_granularity = "Crate"
+
+overflow_delimited_expr = true
+
+group_imports = "StdExternalCrate"
