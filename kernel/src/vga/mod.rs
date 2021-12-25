@@ -5,7 +5,7 @@ use core::intrinsics::{offset, volatile_set_memory};
 use core::ops::RangeBounds;
 use core::ptr::{self, addr_of_mut, Unique};
 use core::slice::SliceIndex;
-use core::sync::atomic::{AtomicPtr, AtomicUsize, Ordering};
+use core::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
 use crate::panic;
 
 const VGA_COLS: usize = 80;
@@ -15,12 +15,14 @@ type VGABuf = [[u16; VGA_COLS]; VGA_ROWS];
 pub static VGA: VGA = VGA {
     ptr: AtomicPtr::new(0xb8000 as *mut VGABuf),
     curr_row: AtomicUsize::new(0),
-    curr_column: AtomicUsize::new(0)
+    curr_column: AtomicUsize::new(0),
+    color: AtomicU8::new(0x0f)
 };
 pub struct VGA {
-    ptr: AtomicPtr<VGABuf>,
+    ptr: AtomicPtr<VGABuf>, // This really doesn't need to be atomic but this whole abstraction is bad
     curr_row: AtomicUsize,
-    curr_column: AtomicUsize
+    curr_column: AtomicUsize,
+    pub color: AtomicU8
 }
 
 pub struct VGAWriter<'a>(&'a VGA);
@@ -78,8 +80,7 @@ impl VGA {
                 219u16
             }
         };
-        // TODO(Bryce): Allow for other colors somehow?
-        c |= 0x0f00; // Black background, white foreground
+        c |= (self.color.load(Ordering::Relaxed) as u16) << 8;
         let mut x = self.curr_column.fetch_add(1, Ordering::Acquire);
         let mut y = self.curr_row.load(Ordering::Acquire);
         if x >= VGA_COLS {

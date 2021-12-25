@@ -11,6 +11,7 @@ mod vga;
 use core::panic::PanicInfo;
 use crate::vga::{test_panic, VGA};
 use core::fmt::Write;
+use core::sync::atomic::Ordering;
 
 static HELLO: &str = "Hello World!";
 
@@ -25,6 +26,7 @@ pub extern "C" fn _start() -> ! {
 
 #[panic_handler]
 fn panic(_info: &PanicInfo) -> ! {
+    VGA.color.store(0x0e, Ordering::Relaxed);
     let _ = write!(VGA.writer(), "\n{}\n", _info);
 
     loop {pause()}
