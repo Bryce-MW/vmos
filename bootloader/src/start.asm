@@ -58,7 +58,9 @@ struc ElfRela
 endstruc
 
 section .text
+%if ELF == 0
 org 0x7c00
+%endif
 jmp 0x0:_start; Far jump so cs is properly cleared
 _start:
 ; Clean up segment registers and add stack below us just in case
@@ -258,5 +260,7 @@ RelaLen:
 DriveNumber:
     db 0
 
+%if ELF == 0
 section .mbr start=510+0x7c00
 db 0x55, 0xAA
+%endif

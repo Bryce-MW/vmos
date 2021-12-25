@@ -84,7 +84,7 @@ impl VGA {
         let mut y = self.curr_row.load(Ordering::Acquire);
         if x >= VGA_COLS {
             x -= VGA_COLS;
-            y = self.curr_row.fetch_add(1, Ordering::Acquire);
+            y = self.curr_row.fetch_add(1, Ordering::Acquire) + 1;
             if y >= VGA_ROWS {
                 x -= VGA_ROWS;
                 self.curr_row.fetch_sub(VGA_ROWS, Ordering::Release);
