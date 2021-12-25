@@ -95,70 +95,13 @@ jnz NextMemoryMap
 DoneMemoryMap:
 mov dword [di], 0xFFFFFFFF
 
+; TODO(bryce): Deal with larger kernels in reading
 ; Load the kernel! Max size supported is 64k for now...
 mov si, DiskAddressPacket
 mov ah, 0x42
 mov dl, [DriveNumber]
 int 0x13
 ; Elf header is now at 0x8000
-; [0x8000 + ElfHeader.shoff] is offset of start of section headers
-; [0x8000 + ElfHeader.shnum] is number of section headers
-; TODO(bryce): Deal with larger kernels in reading and move parsing to long mode
-; cx: Counter for number of headers
-; si: Address of headers
-mov cx, [KernelLoadStart + ElfHeader.shnum]
-mov bx, [KernelLoadStart + ElfHeader.shoff]
-mov eax, [KernelLoadStart + ElfHeader.entry]
-add [KernelStart], eax
-mov ax, KernelLoadStart >> 4
-mov ds, ax
-mov ax, KernelLocation >> 4
-mov es, ax
-parseElf:
-    cmp word [ds:bx + ElfSectionHeader.type], 4 ; Can change if needed
-    jne .notRela
-        mov eax, [ds:bx + ElfSectionHeader.offset] ; Hopefully enough again lol
-        mov [fs:RelaLoc], eax
-        mov eax, [ds:bx + ElfSectionHeader.size]
-        mov [fs:RelaLen], eax
-    .notRela:
-    cmp word [ds:bx + ElfSectionHeader.addr], 0 ; Chan change if needed
-    jz .skipParseElf
-        push cx
-        mov cx, [ds:bx + ElfSectionHeader.size] ; Hoping that these are not full qword
-        mov si, [ds:bx + ElfSectionHeader.offset]
-        mov edi, [ds:bx + ElfSectionHeader.addr]
-        cmp word [ds:bx + ElfSectionHeader.type], 8 ; Can change if needed
-        je .zero
-            rep movsb
-        jmp .skipStoZero
-        .zero:
-            xor al, al
-            rep stosb
-        .skipStoZero:
-        pop cx
-    .skipParseElf:
-    add bx, ElfSectionHeader_size
-loop parseElf
-; TODO(bryce): Actually do the relocations
-xor eax, eax
-mov si, [fs:RelaLoc]
-cmp si, 0
-je skipParseRela
-mov ecx, [fs:RelaLen]
-parseRela:
-    cmp ecx, 0
-    jz skipParseRela
-    sub ecx, ElfRela_size
-    mov eax, [ds:esi + ecx + ElfRela.addend]
-    add eax, KernelLocation
-    mov di, [ds:esi + ecx + ElfRela.offset]
-    mov [es:di], eax
-jmp parseRela
-skipParseRela:
-xor ax, ax
-mov ds, ax
-mov es, ax
 
 ; 1) Build paging structures (PML4, PDPT, PD and PTs)
 ; Fill in an entry for the PDPT
@@ -216,6 +159,60 @@ mov es, ax
 mov fs, ax
 mov gs, ax
 mov ss, ax
+
+; Parse the kernel elf file
+movzx rcx, word [KernelLoadStart + ElfHeader.shnum]
+mov rbx, KernelLoadStart
+add rbx, [KernelLoadStart + ElfHeader.shoff]
+mov rax, [KernelLoadStart + ElfHeader.entry]
+add [KernelStart], rax
+parseElf:
+    cmp dword [rbx + ElfSectionHeader.type], 4
+    jne .notRela
+        mov rax, [rbx + ElfSectionHeader.offset]
+        mov [RelaLoc], rax
+        mov rax, [rbx + ElfSectionHeader.size]
+        mov [RelaLen], rax
+    .notRela:
+    cmp qword [rbx + ElfSectionHeader.addr], 0
+    je .skipParseElf
+        push rcx
+        mov rcx, [rbx + ElfSectionHeader.size]
+        mov rsi, KernelLoadStart
+        add rsi, [rbx + ElfSectionHeader.offset]
+        mov rdi, KernelLocation
+        add rdi, [rbx + ElfSectionHeader.addr]
+        cmp dword [rbx + ElfSectionHeader.type], 8
+        je .zero
+            rep movsb
+        jmp .skipStoZero
+        .zero:
+            xor eax, eax
+            rep stosb
+        .skipStoZero:
+        pop rcx
+    .skipParseElf:
+    add rbx, ElfSectionHeader_size
+loop parseElf
+; Actually do the relocations
+xor eax, eax
+mov rsi, KernelLoadStart
+add rsi, [RelaLoc]
+cmp rsi, 0
+je skipParseRela
+mov rcx, [RelaLen]
+parseRela:
+    cmp rcx, 0
+    je skipParseRela
+    sub rcx, ElfRela_size
+    mov rax, [rsi + rcx + ElfRela.addend]
+    add rax, KernelLocation
+    mov rdi, KernelLocation
+    add rdi, [rsi + rcx + ElfRela.offset]
+    mov [rdi], rax
+jmp parseRela
+skipParseRela:
+
 .loop:
 call [KernelStart]
 jmp .loop ; If the kernel returns, just call it again lol
@@ -232,7 +229,7 @@ DiskAddressPacket:
 .lba.l:    dq 1
 .lba.h:    dd 0
 
-; idt is shorter than a quad word and is all null for now o we can hide it in the gdt
+; idt is shorter than a quad word and is all null for now we can hide it in the gdt
 idt:
     ;.length: dw 0
     ;.base:   dd 0
@@ -254,9 +251,9 @@ KernelStart:
 ;    dq 0 ; Setting this to 0 since we are making the image locations absolute
 
 RelaLoc:
-    dd 0
+    dq 0
 RelaLen:
-    dd 0
+    dq 0
 
 DriveNumber:
     db 0
