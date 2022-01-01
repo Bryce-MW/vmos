@@ -1,14 +1,16 @@
 #! /bin/bash
 
+kernel=build/bootloader
+
 #   -d int \
 
 #qemu-system-x86_64 \
-#  build/bootloader \
+#  "$kernel" \
 #  -s \
 #  -monitor stdio
 
 qemu-system-x86_64 \
-  build/bootloader \
+  "$kernel" \
   -s \
   -S \
   -no-reboot \

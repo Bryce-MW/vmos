@@ -2,39 +2,52 @@
 #![feature(const_mut_refs)]
 #![feature(ptr_internals)]
 #![feature(core_intrinsics)]
-
+#![feature(abi_x86_interrupt)]
+#![feature(const_fn_fn_ptr_basics)]
+#![feature(stdsimd)]
 #![no_std]
 #![no_main]
 
+mod interrupts;
 mod vga;
 
-use core::panic::PanicInfo;
-use crate::vga::{test_panic, VGA};
-use core::fmt::Write;
-use core::sync::atomic::Ordering;
+use core::{arch::x86_64::ud2, fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
+
+use crate::{
+    interrupts::{create_glob_idt, sti},
+    vga::VGA
+};
 
 static HELLO: &str = "Hello World!";
 
 #[no_mangle]
-pub extern "C" fn _start() -> ! {
+pub extern "C" fn _start() -> !
+{
+    unsafe {
+        create_glob_idt();
+        sti();
+    }
+
     write!(VGA.writer(), "{}\nSomething else", HELLO).unwrap();
 
-    test_panic();
-
-    loop {pause()}
+    loop {
+        hlt()
+    }
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo) -> ! {
+fn panic(_info: &PanicInfo) -> !
+{
     VGA.color.store(0x0e, Ordering::Relaxed);
-    let _ = write!(VGA.writer(), "\n{}\n", _info);
+    let _ = writeln!(VGA.writer(), "\n{}", _info);
 
-    loop {pause()}
+    loop {
+        hlt()
+    }
 }
 
-fn pause() {
+fn hlt()
+{
     // IMPORTANT(bryce): We are assuming we are on x64 so this is always safe.
-    unsafe {
-        asm!("pause")
-    }
+    unsafe { asm!("hlt") }
 }

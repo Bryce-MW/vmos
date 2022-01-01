@@ -1,11 +1,13 @@
-use core::cell::{Cell, UnsafeCell};
-use core::fmt::Write;
-use core::fmt;
-use core::intrinsics::{offset, volatile_set_memory};
-use core::ops::RangeBounds;
-use core::ptr::{self, addr_of_mut, Unique};
-use core::slice::SliceIndex;
-use core::sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering};
+use core::{
+    cell::{Cell, UnsafeCell},
+    fmt::{self, Write},
+    intrinsics::{offset, volatile_set_memory},
+    ops::RangeBounds,
+    ptr::{self, addr_of_mut, Unique},
+    slice::SliceIndex,
+    sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering}
+};
+
 use crate::panic;
 
 const VGA_COLS: usize = 80;
@@ -13,25 +15,27 @@ const VGA_ROWS: usize = 25;
 const VGA_BUF_SIZE: usize = VGA_COLS * VGA_ROWS;
 type VGABuf = [[u16; VGA_COLS]; VGA_ROWS];
 pub static VGA: VGA = VGA {
-    ptr: AtomicPtr::new(0xb8000 as *mut VGABuf),
-    curr_row: AtomicUsize::new(0),
+    ptr:         AtomicPtr::new(0xb8000 as *mut VGABuf),
+    curr_row:    AtomicUsize::new(0),
     curr_column: AtomicUsize::new(0),
-    color: AtomicU8::new(0x0f)
+    color:       AtomicU8::new(0x0f)
 };
-pub struct VGA {
-    ptr: AtomicPtr<VGABuf>, // This really doesn't need to be atomic but this whole abstraction is bad
-    curr_row: AtomicUsize,
+pub struct VGA
+{
+    ptr:         AtomicPtr<VGABuf>, /* This really doesn't need to be atomic but this whole
+                                     * abstraction is bad */
+    curr_row:    AtomicUsize,
     curr_column: AtomicUsize,
-    pub color: AtomicU8
+    pub color:   AtomicU8
 }
 
 pub struct VGAWriter<'a>(&'a VGA);
 
-impl VGA {
-    pub fn writer(&self) -> VGAWriter {
-        VGAWriter(&self)
-    }
-    unsafe fn clear(&self, buf: *mut VGABuf) {
+impl VGA
+{
+    pub fn writer(&self) -> VGAWriter { VGAWriter(&self) }
+    unsafe fn clear(&self, buf: *mut VGABuf)
+    {
         unsafe {
             // Clear the screen
             volatile_set_memory(buf, 0, 1);
@@ -39,7 +43,8 @@ impl VGA {
             self.curr_column.store(0, Ordering::Release);
         }
     }
-    fn obtain(&self) -> *mut VGABuf {
+    fn obtain(&self) -> *mut VGABuf
+    {
         let mut res = self.ptr.swap(ptr::null_mut(), Ordering::Acquire);
         if res.is_null() {
             res = 0xb8000 as *mut VGABuf;
@@ -50,35 +55,30 @@ impl VGA {
         }
         res
     }
-    fn release(&self, buf: *mut VGABuf) {
-        self.ptr.store(buf, Ordering::Release);
+    fn release(&self, buf: *mut VGABuf) { self.ptr.store(buf, Ordering::Release); }
+    unsafe fn index(buf: *mut VGABuf, x: usize, y: usize) -> *mut u16
+    {
+        unsafe { (*buf)[y].as_mut_ptr().add(x) }
     }
-    unsafe fn index(buf: *mut VGABuf, x: usize, y: usize) -> *mut u16 {
-        unsafe {
-            (*buf)[y].as_mut_ptr().add(x)
-        }
-    }
-    unsafe fn cur_index(&self, buf: *mut VGABuf) -> *mut u16 {
+    unsafe fn cur_index(&self, buf: *mut VGABuf) -> *mut u16
+    {
         Self::index(
             buf,
             self.curr_column.load(Ordering::Relaxed),
             self.curr_row.load(Ordering::Relaxed)
         )
     }
-    fn write_char(&self, c: char) {
+    fn write_char(&self, c: char)
+    {
         let buf = self.obtain();
         let mut c = match c {
             '\n' => {
                 self.new_line(buf);
                 self.release(buf);
                 return;
-            }
-            c if c.is_ascii() && !c.is_ascii_control() => {
-                c as u16
-            }
-            _ => {
-                219u16
-            }
+            },
+            c if c.is_ascii() && !c.is_ascii_control() => c as u16,
+            _ => 219u16
         };
         c |= (self.color.load(Ordering::Relaxed) as u16) << 8;
         let mut x = self.curr_column.fetch_add(1, Ordering::Acquire);
@@ -110,7 +110,8 @@ impl VGA {
     }
 }
 
-impl Write for VGAWriter<'_> {
+impl Write for VGAWriter<'_>
+{
     fn write_str(&mut self, s: &str) -> fmt::Result
     {
         s.chars().for_each(|c| self.0.write_char(c));
@@ -122,8 +123,4 @@ impl Write for VGAWriter<'_> {
         self.0.write_char(c);
         Ok(())
     }
-}
-
-pub fn test_panic() -> ! {
-    panic!("I am panicking from inside vga/mod.rs!!! Oh no!");
 }
