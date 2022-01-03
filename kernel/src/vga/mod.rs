@@ -8,8 +8,6 @@ use core::{
     sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering}
 };
 
-use crate::panic;
-
 const VGA_COLS: usize = 80;
 const VGA_ROWS: usize = 25;
 const VGA_BUF_SIZE: usize = VGA_COLS * VGA_ROWS;

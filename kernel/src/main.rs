@@ -4,6 +4,7 @@
 #![feature(core_intrinsics)]
 #![feature(abi_x86_interrupt)]
 #![feature(const_fn_fn_ptr_basics)]
+#![feature(const_option)]
 #![feature(stdsimd)]
 #![no_std]
 #![no_main]
@@ -11,6 +12,7 @@
 mod interrupts;
 mod vga;
 mod acpi;
+mod util;
 
 use core::{arch::x86_64::ud2, fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
 
@@ -18,6 +20,7 @@ use crate::{
     interrupts::{create_glob_idt, sti},
     vga::VGA
 };
+use crate::acpi::find_pcie;
 
 static HELLO: &str = "Hello World!";
 
@@ -29,6 +32,8 @@ pub extern "C" fn _start() -> !
         sti();
 
         find_pcie();
+
+        asm!("int3");
     }
 
     write!(VGA.writer(), "{}\nSomething else", HELLO).unwrap();
