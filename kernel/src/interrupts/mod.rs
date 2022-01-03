@@ -122,8 +122,9 @@ impl<T> IDTEnt<T>
     {
         let mut res = Self::new_empty();
         res.offset_low = (offset & 0xffff) as u16;
-        res.offset_high = (offset & 0xffff0000 >> 16) as u16;
+        res.offset_high = ((offset & 0xffff0000) >> 16) as u16;
         res.offset_extended = (offset >> 32) as u32;
+        res.flags |= 0b1000_0000;
         res
     }
     fn set_present(&mut self) { self.flags |= 1 << 7; }
@@ -184,7 +185,7 @@ mod page_errors
 
 extern "x86-interrupt" fn panic(frame: InterruptFrame)
 {
-    panic!("Unexpected interrupt at: {}", frame.instruction_pointer);
+    panic!("Unexpected interrupt at: {:x}", frame.instruction_pointer);
 }
 extern "x86-interrupt" fn panic_err(frame: InterruptFrame, error: u64)
 {

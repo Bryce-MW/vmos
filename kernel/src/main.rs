@@ -10,6 +10,7 @@
 
 mod interrupts;
 mod vga;
+mod acpi;
 
 use core::{arch::x86_64::ud2, fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
 
@@ -26,6 +27,8 @@ pub extern "C" fn _start() -> !
     unsafe {
         create_glob_idt();
         sti();
+
+        find_pcie();
     }
 
     write!(VGA.writer(), "{}\nSomething else", HELLO).unwrap();
@@ -49,5 +52,5 @@ fn panic(_info: &PanicInfo) -> !
 fn hlt()
 {
     // IMPORTANT(bryce): We are assuming we are on x64 so this is always safe.
-    unsafe { asm!("hlt") }
+    unsafe { asm!("hlt", options(nomem, preserves_flags, nostack)) }
 }
