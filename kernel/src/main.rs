@@ -6,21 +6,28 @@
 #![feature(const_fn_fn_ptr_basics)]
 #![feature(const_option)]
 #![feature(stdsimd)]
+#![feature(slice_ptr_get)]
+#![feature(slice_ptr_len)]
+#![feature(iter_advance_by)]
+#![feature(decl_macro)]
+#![feature(ptr_metadata)]
+#![feature(extern_types)]
 #![no_std]
 #![no_main]
 
-mod interrupts;
-mod vga;
 mod acpi;
+mod interrupts;
 mod util;
+mod vga;
 
-use core::{arch::x86_64::ud2, fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
+use core::{fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
 
 use crate::{
+    acpi::find_pcie,
     interrupts::{create_glob_idt, sti},
+    util::println,
     vga::VGA
 };
-use crate::acpi::find_pcie;
 
 static HELLO: &str = "Hello World!";
 
@@ -32,11 +39,9 @@ pub extern "C" fn _start() -> !
         sti();
 
         find_pcie();
-
-        asm!("int3");
     }
 
-    write!(VGA.writer(), "{}\nSomething else", HELLO).unwrap();
+    println!("{}\nSomething else", HELLO);
 
     loop {
         hlt()
@@ -47,7 +52,7 @@ pub extern "C" fn _start() -> !
 fn panic(_info: &PanicInfo) -> !
 {
     VGA.color.store(0x0e, Ordering::Relaxed);
-    let _ = writeln!(VGA.writer(), "\n{}", _info);
+    let _ = println!("\n{}", _info);
 
     loop {
         hlt()

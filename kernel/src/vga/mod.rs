@@ -1,16 +1,12 @@
 use core::{
-    cell::{Cell, UnsafeCell},
     fmt::{self, Write},
-    intrinsics::{offset, volatile_set_memory},
-    ops::RangeBounds,
-    ptr::{self, addr_of_mut, Unique},
-    slice::SliceIndex,
+    intrinsics::volatile_set_memory,
+    ptr,
     sync::atomic::{AtomicPtr, AtomicU8, AtomicUsize, Ordering}
 };
 
 const VGA_COLS: usize = 80;
 const VGA_ROWS: usize = 25;
-const VGA_BUF_SIZE: usize = VGA_COLS * VGA_ROWS;
 type VGABuf = [[u16; VGA_COLS]; VGA_ROWS];
 pub static VGA: VGA = VGA {
     ptr:         AtomicPtr::new(0xb8000 as *mut VGABuf),
@@ -34,12 +30,10 @@ impl VGA
     pub fn writer(&self) -> VGAWriter { VGAWriter(&self) }
     unsafe fn clear(&self, buf: *mut VGABuf)
     {
-        unsafe {
-            // Clear the screen
-            volatile_set_memory(buf, 0, 1);
-            self.curr_row.store(0, Ordering::Release);
-            self.curr_column.store(0, Ordering::Release);
-        }
+        // Clear the screen
+        volatile_set_memory(buf, 0, 1);
+        self.curr_row.store(0, Ordering::Release);
+        self.curr_column.store(0, Ordering::Release);
     }
     fn obtain(&self) -> *mut VGABuf
     {
@@ -56,7 +50,7 @@ impl VGA
     fn release(&self, buf: *mut VGABuf) { self.ptr.store(buf, Ordering::Release); }
     unsafe fn index(buf: *mut VGABuf, x: usize, y: usize) -> *mut u16
     {
-        unsafe { (*buf)[y].as_mut_ptr().add(x) }
+        (*buf)[y].as_mut_ptr().add(x)
     }
     unsafe fn cur_index(&self, buf: *mut VGABuf) -> *mut u16
     {
@@ -76,7 +70,7 @@ impl VGA
                 return;
             },
             c if c.is_ascii() && !c.is_ascii_control() => c as u16,
-            _ => 219u16
+            _ => 168u16
         };
         c |= (self.color.load(Ordering::Relaxed) as u16) << 8;
         let mut x = self.curr_column.fetch_add(1, Ordering::Acquire);
@@ -84,11 +78,11 @@ impl VGA
         if x >= VGA_COLS {
             x -= VGA_COLS;
             y = self.curr_row.fetch_add(1, Ordering::Acquire) + 1;
-            if y >= VGA_ROWS {
-                x -= VGA_ROWS;
-                self.curr_row.fetch_sub(VGA_ROWS, Ordering::Release);
-            }
             self.curr_column.fetch_sub(VGA_COLS, Ordering::Release);
+        }
+        if y >= VGA_ROWS {
+            y -= VGA_ROWS;
+            self.curr_row.fetch_sub(VGA_ROWS, Ordering::Release);
         }
         // IMPORTANT(bryce): Safe for ... reasons
         unsafe {

@@ -1,12 +1,13 @@
 use core::{
-    intrinsics::size_of,
     marker::PhantomData,
     mem::{size_of_val, MaybeUninit},
     ops::Deref
 };
 
+#[allow(unused)]
 pub fn sti() { unsafe { asm!("sti", options(nomem, preserves_flags, nostack)) } }
 
+#[allow(unused)]
 pub fn cti() { unsafe { asm!("cti", options(nomem, preserves_flags, nostack)) } }
 
 #[repr(C, packed)]
@@ -69,20 +70,20 @@ impl IDT
             br:  IDTEnt::<IntFunc>::new(panic),
             ud:  IDTEnt::<IntFunc>::new(panic),
             nm:  IDTEnt::<IntFunc>::new(panic),
-            df:  IDTEnt::<BErFunc>::new(panic),
+            df:  IDTEnt::<BErFunc>::new(panic_ber),
             co:  IDTEnt::<IntFunc>::new(panic),
-            ts:  IDTEnt::<ErrFunc>::new(panic),
-            np:  IDTEnt::<ErrFunc>::new(panic),
-            ss:  IDTEnt::<ErrFunc>::new(panic),
-            gp:  IDTEnt::<ErrFunc>::new(panic),
-            pf:  IDTEnt::<ErrFunc>::new(panic),
+            ts:  IDTEnt::<ErrFunc>::new(panic_err),
+            np:  IDTEnt::<ErrFunc>::new(panic_err),
+            ss:  IDTEnt::<ErrFunc>::new(panic_err),
+            gp:  IDTEnt::<ErrFunc>::new(panic_err),
+            pf:  IDTEnt::<ErrFunc>::new(panic_err),
             _a:  IDTEnt::<IntFunc>::new_empty(),
             mf:  IDTEnt::<IntFunc>::new(panic),
-            ac:  IDTEnt::<ErrFunc>::new(panic),
-            mc:  IDTEnt::<BadFunc>::new(panic),
+            ac:  IDTEnt::<ErrFunc>::new(panic_err),
+            mc:  IDTEnt::<BadFunc>::new(panic_bad),
             xm:  IDTEnt::<IntFunc>::new(panic),
             ve:  IDTEnt::<IntFunc>::new(panic),
-            cp:  IDTEnt::<ErrFunc>::new(panic)
+            cp:  IDTEnt::<ErrFunc>::new(panic_err)
         }
     }
 }
@@ -124,7 +125,7 @@ impl<T> IDTEnt<T>
         res.offset_low = (offset & 0xffff) as u16;
         res.offset_high = ((offset & 0xffff0000) >> 16) as u16;
         res.offset_extended = (offset >> 32) as u32;
-        res.flags |= 0b1000_0000;
+        res.set_present();
         res
     }
     fn set_present(&mut self) { self.flags |= 1 << 7; }
@@ -141,15 +142,15 @@ impl IDTEnt<IntFunc>
 }
 impl IDTEnt<ErrFunc>
 {
-    fn new(address: IntFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
+    fn new(address: ErrFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
 }
 impl IDTEnt<BadFunc>
 {
-    fn new(address: IntFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
+    fn new(address: BadFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
 }
 impl IDTEnt<BErFunc>
 {
-    fn new(address: IntFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
+    fn new(address: BErFunc) -> Self { unsafe { Self::new_unchecked(address as u64) } }
 }
 
 // NOTE(bryce): Wrapper is used for safety
@@ -163,13 +164,14 @@ impl Deref for InterruptFrame
 #[repr(C)]
 pub struct InterruptFrameInternal
 {
-    pub instruction_pointer: u64,
+    pub instruction_pointer: *mut u8,
     pub code_segment:        u64,
     pub cpu_flags:           u64,
     pub stack_pointer:       *mut u8,
     pub stack_segment:       u64
 }
 
+#[allow(unused)]
 mod page_errors
 {
     const PROTECTION_VIOLATION: u64 = 1;
@@ -185,23 +187,23 @@ mod page_errors
 
 extern "x86-interrupt" fn panic(frame: InterruptFrame)
 {
-    panic!("Unexpected interrupt at: {:x}", frame.instruction_pointer);
+    panic!("Unexpected interrupt at: {:p}", frame.instruction_pointer);
 }
 extern "x86-interrupt" fn panic_err(frame: InterruptFrame, error: u64)
 {
     panic!(
-        "Unexpected interrupt with err: {:x} at: {}",
+        "Unexpected interrupt with err: {:x} at: {:p}",
         error, frame.instruction_pointer
     );
 }
 extern "x86-interrupt" fn panic_bad(frame: InterruptFrame) -> !
 {
-    panic!("Unexpected interrupt at: {}", frame.instruction_pointer)
+    panic!("Unexpected interrupt at: {:p}", frame.instruction_pointer)
 }
 extern "x86-interrupt" fn panic_ber(frame: InterruptFrame, error: u64) -> !
 {
     panic!(
-        "Unexpected interrupt with err: {:x} at: {}",
+        "Unexpected interrupt with err: {:x} at: {:p}",
         error, frame.instruction_pointer
     )
 }

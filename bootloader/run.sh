@@ -38,5 +38,5 @@ qemu-system-x86_64 \
   -vga virtio \
   -chardev vc,id=seabios -device isa-debugcon,iobase=0x402,chardev=seabios \
   -monitor stdio \
-#  -boot menu=on \
 #  -S
+#  -boot menu=on \

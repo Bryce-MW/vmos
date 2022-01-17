@@ -9,7 +9,7 @@ debug = 2
 
 [profile.release]
 panic = "abort"
-opt-level = 0
+opt-level = "z"
 #strip = "symbols"
 debug = 2
 #split-debuginfo = "packed"
