@@ -96,6 +96,7 @@ test ebx, ebx
 jnz NextMemoryMap
 DoneMemoryMap:
 mov dword [di], 0xFFFFFFFF
+mov dword [di + 4], 0xFFFFFFFF
 
 ; TODO(bryce): Deal with larger kernels in reading
 ; Load the kernel! Max size supported is 64k for now...

@@ -20,6 +20,7 @@ mod acpi;
 mod interrupts;
 mod util;
 mod vga;
+mod memory;
 
 use core::{fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
 
@@ -29,6 +30,7 @@ use crate::{
     util::println,
     vga::VGA
 };
+use crate::memory::create_high_mem;
 
 static HELLO: &str = "Hello World!";
 
@@ -44,6 +46,8 @@ pub extern "C" fn _start() -> !
             create_glob_idt();
             sti();
         }
+
+        create_high_mem();
     } else {
         // NOTE(bryce): We are in a higher half kernel so we can now play with memory
         println!("Got higher-half control from kernel");
