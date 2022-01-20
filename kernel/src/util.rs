@@ -58,10 +58,10 @@ pub const fn bytes_to_elements<T>(bytes: usize) -> usize
     bytes.checked_div(size_of::<T>()).unwrap()
 }
 
-pub macro println($str:literal, $($arg:tt)*) {
-    print!(concat!($str, "\n"), $($arg)*)
+pub macro println($($arg:tt)*) {
+    VGA.writer().write_fmt(format_args_nl!($($arg)*)).unwrap()
 }
 
 pub macro print($($arg:tt)*) {
-    write!(VGA.writer(), $($arg)*).unwrap()
+    VGA.writer().write_fmt(format_args!($($arg)*)).unwrap()
 }

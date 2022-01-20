@@ -12,6 +12,7 @@
 #![feature(decl_macro)]
 #![feature(ptr_metadata)]
 #![feature(extern_types)]
+#![feature(format_args_nl)]
 #![no_std]
 #![no_main]
 
@@ -34,14 +35,28 @@ static HELLO: &str = "Hello World!";
 #[no_mangle]
 pub extern "C" fn _start() -> !
 {
-    unsafe {
-        create_glob_idt();
-        sti();
+    if (_start as usize) < isize::MAX as usize {
+        // NOTE(bryce): We are in a lower half kernel, i.e. the bootloader just called us
+        println!("Got lower-half control from bootloader");
 
-        find_pcie();
+        // TODO(bryce): Remove this eventually
+        unsafe {
+            create_glob_idt();
+            sti();
+        }
+    } else {
+        // NOTE(bryce): We are in a higher half kernel so we can now play with memory
+        println!("Got higher-half control from kernel");
+
+        unsafe {
+            create_glob_idt();
+            sti();
+
+            find_pcie();
+        }
+
+        println!("{}\nSomething else", HELLO);
     }
-
-    println!("{}\nSomething else", HELLO);
 
     loop {
         hlt()

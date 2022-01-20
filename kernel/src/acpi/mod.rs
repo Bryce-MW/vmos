@@ -23,7 +23,16 @@ pub unsafe fn find_pcie()
     println!("RSDT Head: {:?}", (*rsdt).header);
     println!("RSDT Length: {}", (*rsdt).pointer_to_other_sdt.len());
     for addr in &(*rsdt).pointer_to_other_sdt {
-        println!("{:x}", *addr);
+        println!("{:x}: {}", *addr, str::from_utf8((*(*addr as *const UnknownTable)).header.signature.to_ne_bytes().as_slice()).unwrap());
+    }
+    let mcfg = UnknownTable::mcfg(RSDT::find_table(rsdt, MCFG_SIG));
+    println!("MCFG: {:p}", mcfg);
+    println!("MCFG Length: {}", (*mcfg).pci_addrs.len());
+    for pci_des in &(*mcfg).pci_addrs {
+        println!("{:?}", *pci_des);
+        // TODO(bryce): is = correct?
+        let pci = pci_des.ecm_base as *const PciHeader;
+        println!("{:?}", *pci);
     }
 }
 
@@ -93,12 +102,6 @@ struct UnknownTable
     header:               TableHeader,
     pointer_to_other_sdt: UnknownSlice
 }
-#[repr(C, packed)]
-struct RSDT
-{
-    header:               TableHeader,
-    pointer_to_other_sdt: [u32]
-}
 
 impl UnknownTable
 {
@@ -107,11 +110,84 @@ impl UnknownTable
         let size = ((*s).header.length as usize - size_of::<TableHeader>()) / size_of::<u32>();
         ptr::from_raw_parts(s as *const (), size)
     }
+    unsafe fn mcfg(s: *const UnknownTable) -> *const MCFG
+    {
+        let size = ((*s).header.length as usize - size_of::<TableHeader>() - 8) / size_of::<PciAddr>();
+        ptr::from_raw_parts(s as *const (), size)
+    }
+}
+
+#[repr(C, packed)]
+struct RSDT
+{
+    header:               TableHeader,
+    pointer_to_other_sdt: [u32]
+}
+
+impl RSDT {
+    unsafe fn find_table(s: *const RSDT, sig: u32) -> *const UnknownTable {
+        for addr in &(*s).pointer_to_other_sdt {
+            let addr = *addr as *const UnknownTable;
+            if (*addr).header.signature == sig {
+                return addr;
+            }
+        }
+        panic!("Could not find table: {}", sig)
+    }
 }
 
 const MCFG_SIG: u32 = u32::from_ne_bytes(*b"MCFG");
 #[repr(C, packed)]
 struct MCFG
 {
-    header: TableHeader
+    header: TableHeader,
+    _reserved: u64,
+    pci_addrs: [PciAddr]
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+struct PciAddr
+{
+    ecm_base: u64,
+    segment_group: u16,
+    pci_bus_start: u8,
+    pci_bus_end: u8,
+    _reserved: u32
+}
+
+#[derive(Copy, Clone, Debug)]
+#[repr(C, packed)]
+struct PciHeader
+{
+    vendor_id: u16,
+    device_id: u16,
+    command: u16,
+    status: u16,
+    revision_id: u8,
+    program_if: u8,
+    subclass: u8,
+    class: u8,
+    cache_line_size: u8,
+    latency_timer: u8,
+    header_type: u8,
+    self_test: u8,
+    base_addr_0: u32,
+    base_addr_1: u32,
+    base_addr_2: u32,
+    base_addr_3: u32,
+    base_addr_4: u32,
+    base_addr_5: u32,
+    cis_ptr: u32,
+    sub_vendor: u16,
+    sub_id: u16,
+    expansion_rom: u32,
+    cap_ptr: u8,
+    _reserved0: u8,
+    _reserved1: u16,
+    _reserved2: u32,
+    int_line: u8,
+    int_pin: u8,
+    min_grant: u8,
+    max_latency: u8
 }

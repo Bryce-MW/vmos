@@ -62,28 +62,28 @@ impl IDT
     fn new() -> Self
     {
         IDT {
-            de:  IDTEnt::<IntFunc>::new(panic),
-            db:  IDTEnt::<IntFunc>::new(panic),
-            nmi: IDTEnt::<IntFunc>::new(panic),
-            bp:  IDTEnt::<IntFunc>::new(panic),
-            of:  IDTEnt::<IntFunc>::new(panic),
-            br:  IDTEnt::<IntFunc>::new(panic),
-            ud:  IDTEnt::<IntFunc>::new(panic),
-            nm:  IDTEnt::<IntFunc>::new(panic),
-            df:  IDTEnt::<BErFunc>::new(panic_ber),
-            co:  IDTEnt::<IntFunc>::new(panic),
-            ts:  IDTEnt::<ErrFunc>::new(panic_err),
-            np:  IDTEnt::<ErrFunc>::new(panic_err),
-            ss:  IDTEnt::<ErrFunc>::new(panic_err),
-            gp:  IDTEnt::<ErrFunc>::new(panic_err),
-            pf:  IDTEnt::<ErrFunc>::new(panic_err),
+            de:  IDTEnt::<IntFunc>::new(panic_00),
+            db:  IDTEnt::<IntFunc>::new(panic_01),
+            nmi: IDTEnt::<IntFunc>::new(panic_02),
+            bp:  IDTEnt::<IntFunc>::new(panic_03),
+            of:  IDTEnt::<IntFunc>::new(panic_04),
+            br:  IDTEnt::<IntFunc>::new(panic_05),
+            ud:  IDTEnt::<IntFunc>::new(panic_06),
+            nm:  IDTEnt::<IntFunc>::new(panic_07),
+            df:  IDTEnt::<BErFunc>::new(panic_08),
+            co:  IDTEnt::<IntFunc>::new(panic_09),
+            ts:  IDTEnt::<ErrFunc>::new(panic_10),
+            np:  IDTEnt::<ErrFunc>::new(panic_11),
+            ss:  IDTEnt::<ErrFunc>::new(panic_12),
+            gp:  IDTEnt::<ErrFunc>::new(panic_13),
+            pf:  IDTEnt::<ErrFunc>::new(panic_14),
             _a:  IDTEnt::<IntFunc>::new_empty(),
-            mf:  IDTEnt::<IntFunc>::new(panic),
-            ac:  IDTEnt::<ErrFunc>::new(panic_err),
-            mc:  IDTEnt::<BadFunc>::new(panic_bad),
-            xm:  IDTEnt::<IntFunc>::new(panic),
-            ve:  IDTEnt::<IntFunc>::new(panic),
-            cp:  IDTEnt::<ErrFunc>::new(panic_err)
+            mf:  IDTEnt::<IntFunc>::new(panic_16),
+            ac:  IDTEnt::<ErrFunc>::new(panic_17),
+            mc:  IDTEnt::<BadFunc>::new(panic_18),
+            xm:  IDTEnt::<IntFunc>::new(panic_19),
+            ve:  IDTEnt::<IntFunc>::new(panic_20),
+            cp:  IDTEnt::<ErrFunc>::new(panic_21),
         }
     }
 }
@@ -207,3 +207,25 @@ extern "x86-interrupt" fn panic_ber(frame: InterruptFrame, error: u64) -> !
         error, frame.instruction_pointer
     )
 }
+
+extern "x86-interrupt" fn panic_00(frame: InterruptFrame) {                  panic!("Unexpected interrupt de  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_01(frame: InterruptFrame) {                  panic!("Unexpected interrupt db  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_02(frame: InterruptFrame) {                  panic!("Unexpected interrupt nmi at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_03(frame: InterruptFrame) {                  panic!("Unexpected interrupt bp  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_04(frame: InterruptFrame) {                  panic!("Unexpected interrupt of  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_05(frame: InterruptFrame) {                  panic!("Unexpected interrupt br  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_06(frame: InterruptFrame) {                  panic!("Unexpected interrupt ud  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_07(frame: InterruptFrame) {                  panic!("Unexpected interrupt nm  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_08(frame: InterruptFrame, error: u64) -> ! { panic!("Unexpected interrupt df  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_09(frame: InterruptFrame){                   panic!("Unexpected interrupt co  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_10(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt ts  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_11(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt np  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_12(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt ss  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_13(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt gp  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_14(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt pf  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_16(frame: InterruptFrame){                   panic!("Unexpected interrupt mf  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_17(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt ac  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_18(frame: InterruptFrame) -> ! {             panic!("Unexpected interrupt mc  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_19(frame: InterruptFrame) {                  panic!("Unexpected interrupt xm  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_20(frame: InterruptFrame) {                  panic!("Unexpected interrupt ve  at: {:p}", frame.instruction_pointer) }
+extern "x86-interrupt" fn panic_21(frame: InterruptFrame, error: u64) {      panic!("Unexpected interrupt cp  with err: {:x} at: {:p}", error, frame.instruction_pointer) }
