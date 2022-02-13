@@ -7,9 +7,10 @@ use core::{
 };
 
 use crate::{
-    util::{bytes_to_elements, k_bytes, print, println, IterPtr},
+    util::{bytes_to_elements, print, println, IterPtr},
     vga::VGA
 };
+use crate::util::kb;
 
 pub unsafe fn find_pcie()
 {
@@ -37,7 +38,7 @@ pub unsafe fn find_pcie()
 }
 
 const EBDA_PTR_PTR: *mut u16 = 0x40e as *mut u16;
-const EBDA_SEARCH_LEN: usize = bytes_to_elements::<u64>(k_bytes(1));
+const EBDA_SEARCH_LEN: usize = bytes_to_elements::<u64>(kb!(1));
 const BIOS_RO_PTR: *mut u64 = 0xe0000 as *mut u64;
 const BIOS_RO_SEARCH_LEN: usize = bytes_to_elements::<u64>(0x100000 - 0xe0000);
 const RSDP_HEADER: u64 = u64::from_ne_bytes(*b"RSD PTR ");

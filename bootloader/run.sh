@@ -28,7 +28,7 @@ kernel=build/bootloader
 
 qemu-system-x86_64 \
   -machine q35,accel=tcg,vmport=off \
-  -m 4G \
+  -m 4G p\
   -s \
   -cpu max \
   -smp cpus=6 \

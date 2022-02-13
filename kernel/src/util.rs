@@ -51,7 +51,9 @@ impl<T> IterPtr<T> for *const [T]
     fn iter_ptr(self) -> PtrIter<T> { PtrIter(self.as_ptr(), self.len()) }
 }
 
-pub const fn k_bytes(n: usize) -> usize { n * 1024 }
+pub macro kb($e:expr) { (($e) * 1024) }
+pub macro mb($e:expr) { (kb!($e) * 1024) }
+pub macro gb($e:expr) { (mb!($e) * 1024) }
 
 pub const fn bytes_to_elements<T>(bytes: usize) -> usize
 {
