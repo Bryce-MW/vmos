@@ -163,20 +163,15 @@ mov fs, ax
 mov gs, ax
 mov ss, ax
 
-; Parse the kernel elf file
+; Parse the kernel elf file data
 movzx rcx, word [KernelLoadStart + ElfHeader.shnum]
+push rcx
 mov rbx, KernelLoadStart
 add rbx, [KernelLoadStart + ElfHeader.shoff]
+push rbx
 mov rax, [KernelLoadStart + ElfHeader.entry]
 add [KernelStart], rax
-parseElf:
-    cmp dword [rbx + ElfSectionHeader.type], 4
-    jne .notRela
-        mov rax, [rbx + ElfSectionHeader.offset]
-        mov [RelaLoc], rax
-        mov rax, [rbx + ElfSectionHeader.size]
-        mov [RelaLen], rax
-    .notRela:
+parseData:
     cmp qword [rbx + ElfSectionHeader.addr], 0
     je .skipParseElf
         push rcx
@@ -196,29 +191,33 @@ parseElf:
         pop rcx
     .skipParseElf:
     add rbx, ElfSectionHeader_size
-loop parseElf
-; Actually do the relocations
-xor eax, eax
-mov rsi, KernelLoadStart
-add rsi, [RelaLoc]
-cmp rsi, 0
-je skipParseRela
-mov rcx, [RelaLen]
+loop parseData
+; Parse the kernel elf relocations
+pop rbx
+pop rcx
 parseRela:
-    cmp rcx, 0
-    je skipParseRela
-    sub rcx, ElfRela_size
-    mov rax, [rsi + rcx + ElfRela.addend]
-    add rax, KernelLocation
-    mov rdi, KernelLocation
-    add rdi, [rsi + rcx + ElfRela.offset]
-    mov [rdi], rax
-jmp parseRela
-skipParseRela:
+    cmp dword [rbx + ElfSectionHeader.type], 4
+    jne .notRela
+        mov rsi, [rbx + ElfSectionHeader.offset]
+        add rsi, KernelLoadStart
+        mov rdx, [rbx + ElfSectionHeader.size]
+        .parseRela:
+            cmp rdx, 0
+            je .notRela
+            sub rdx, ElfRela_size
+            mov rax, [rsi + rdx + ElfRela.addend]
+            add rax, KernelLocation
+            mov rdi, KernelLocation
+            add rdi, [rsi + rdx + ElfRela.offset]
+            add [rdi], rax
+        jmp .parseRela
+    .notRela:
+    add rbx, ElfSectionHeader_size
+loop parseRela
 
-.loop:
+kLoop:
 call [KernelStart]
-jmp .loop ; If the kernel returns, just call it again lol
+jmp kLoop ; If the kernel returns, just call it again lol
 
 
 section .data
