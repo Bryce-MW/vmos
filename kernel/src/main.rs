@@ -22,7 +22,7 @@ mod util;
 mod vga;
 mod memory;
 
-use core::{fmt::Write, panic::PanicInfo, sync::atomic::Ordering, arch::asm};
+use core::{fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
 
 use crate::{
     acpi::find_pcie,

@@ -1,10 +1,3 @@
-set print asm-demangle on
-set disassembly-flavor intel
-
-symbol-file /Users/bryce/randomProj/vmos/build/kernel -o 0x18000
-add-symbol-file /Users/bryce/randomProj/vmos/build/bootloader.elf -o 0x7c00
-set substitute-path /root/vmos /Users/bryce/randomProj/vmos
-set substitute-path /jai /Users/bryce/randomProj/jai
-
-break kernel.jai:6
-break write
+symbol-file /Users/bryce/CLionProjects/vmos/target/x86_64-unknown-none/release/kernel -o 0x18000
+add-symbol-file /Users/bryce/CLionProjects/vmos/bootloader/build/bootloader-head.elf -o 0x7c00
+break _start
