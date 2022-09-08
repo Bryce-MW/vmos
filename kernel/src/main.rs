@@ -1,4 +1,3 @@
-#![feature(asm)]
 #![feature(const_mut_refs)]
 #![feature(ptr_internals)]
 #![feature(core_intrinsics)]
@@ -22,7 +21,12 @@ mod util;
 mod vga;
 mod memory;
 
-use core::{fmt::Write, panic::PanicInfo, sync::atomic::Ordering};
+use core::{
+    fmt::Write,
+    panic::PanicInfo,
+    sync::atomic::Ordering,
+    arch::asm
+};
 
 use crate::{
     acpi::find_pcie,

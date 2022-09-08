@@ -19,9 +19,9 @@ lto = "fat"
 
 members = [
     "kernel",
-    "libc",
-    "libb",
-    "libbc",
-    "libstd",
-    "platform"
+#    "libc",
+#    "libb",
+#    "libbc",
+#    "libstd",
+#    "platform"
 ]

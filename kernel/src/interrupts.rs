@@ -1,7 +1,8 @@
 use core::{
     marker::PhantomData,
     mem::{size_of_val, MaybeUninit},
-    ops::Deref
+    ops::Deref,
+    arch::asm
 };
 
 #[allow(unused)]
